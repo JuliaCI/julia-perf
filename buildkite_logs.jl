@@ -65,7 +65,7 @@ function get_log(sha, branch, commit_time)
         return :not_finished
     end
 
-    logs_url = "https://buildkite.com/" * details_json.jobs[idx].base_path * "/raw_log"
+    logs_url = "https://buildkite.com/" * details_json.jobs[idx].base_path * "/download.txt"
 
     return HTTP.get(logs_url).body |> String
 end
