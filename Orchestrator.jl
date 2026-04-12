@@ -4,23 +4,6 @@ using LibGit2, Dates
 include("upload_nanosoldier_to_db.jl")
 include("buildkite_logs.jl")
 
-@inline function SQLite.transaction(f::Function, db::SQLite.DB)
-    # generate a random name for the savepoint
-    name = string("SQLITE", SQLite.Random.randstring(10))
-    # execute(db, "PRAGMA synchronous = OFF;")
-    SQLite.transaction(db, name)
-    try
-        f()
-    catch
-        SQLite.rollback(db, name)
-        rethrow()
-    finally
-        # savepoints are not released on rollback
-        SQLite.commit(db, name)
-        # execute(db, "PRAGMA synchronous = ON;")
-    end
-end
-
 const sleep_time = Dates.Minute(5)
 const db_path = joinpath(@__DIR__, "julia.db")
 
