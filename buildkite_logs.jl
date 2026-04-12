@@ -1,4 +1,4 @@
-using HTTP, JSON3, DataFrames
+using HTTP, JSON3, DataFrames, Dates
 
 function get_logs(page)
     url = "https://buildkite.com/julialang/julia-master/builds?branch=master&page=$page"
@@ -38,20 +38,20 @@ function get_log(sha, branch, commit_time)
     end
     build_num = build_num_matches.captures[1]
 
-    details_url = "https://buildkite.com/julialang/julia-$branch/builds/$build_num.json"
+    details_url = "https://buildkite.com/julialang/julia-$branch/builds/$build_num/data/jobs?include_retried_jobs=true&paginate=false"
     details_json = HTTP.get(details_url).body |> JSON3.read
-    idx = findfirst(x -> x.name == ":linux: build x86_64-linux-gnu", details_json.jobs)
+    idx = findfirst(x -> x.name == ":linux: build x86_64-linux-gnu", details_json.records)
 
-    idx_launch_builds = findfirst(x -> x.name == "Launch build jobs",details_json.jobs)
+    idx_launch_builds = findfirst(x -> x.name == "Launch build jobs",details_json.records)
 
     try
-        if details_json.jobs[idx_launch_builds].exit_status isa Integer && details_json.jobs[idx_launch_builds].exit_status != 0 && isnothing(idx)
+        if details_json.records[idx_launch_builds].exit_status isa Integer && details_json.records[idx_launch_builds].exit_status != 0 && isnothing(idx)
             return :no_ci
         end
-        if details_json.jobs[idx].exit_status isa Integer && details_json.jobs[idx].exit_status != 0
+        if details_json.records[idx].exit_status isa Integer && details_json.records[idx].exit_status != 0
             return :no_ci
         end
-        if details_json.jobs[idx].state != "finished"
+        if details_json.records[idx].state != "finished"
             return :not_finished
         end
     catch err
@@ -59,13 +59,16 @@ function get_log(sha, branch, commit_time)
         println("Error: $err")
 
         if time() - commit_time > 60 * 60 * 6 # If no log after 6 hours, assumed failed
-            println("Build not finished after 6 hours at $(time()) for $sha commited at $commit_time, skipping")
+            now_dt = Dates.unix2datetime(round(Int, time()))
+            commit_dt = Dates.unix2datetime(round(Int, commit_time))
+            fmt = dateformat"yyyy-mm-dd HH:MM:SS"
+            println("Build not finished after 6 hours at $(Dates.format(now_dt, fmt)) for $sha committed at $(Dates.format(commit_dt, fmt)), skipping")
             return :no_ci
         end
         return :not_finished
     end
 
-    logs_url = "https://buildkite.com/" * details_json.jobs[idx].base_path * "/download.txt"
+    logs_url = "https://buildkite.com/" * details_json.records[idx].base_path * "/download.txt"
 
     return HTTP.get(logs_url).body |> String
 end
@@ -136,7 +139,7 @@ end
 #     sha = "0a491e00a1f38b814ca173bd7d9bffeadde65738"
 #     branch = "master"
 
-#     process_commit!(artifact_size_df, pstat_df, aid, sha, branch, identity)
+#     process_commit!(artifact_size_df, pstat_df, aid, sha, branch, identity, 0)
 #     @test artifact_size_df == DataFrame(aid=[aid, aid, aid], component=["julia", "sys.so", "libjulia.so"], size=[9478, 197751633, 199055])
 #     @test pstat_df == DataFrame(aid=[aid, aid, aid, aid, aid, aid, aid, aid, aid, aid, aid], series=["elapsed", "system", "user", "outputs", "minor", "swaps", "maxresident", "major", "avgtext", "avgdata", "inputs"], value=[[0.13, 0.13, 0.14], [0.07, 0.06, 0.07], [0.26, 0.28, 0.28], [0.0, 0.0, 0.0], [20532.0, 20531.0, 20598.0], [0.0, 0.0, 0.0], [180252.0, 180360.0, 180400.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
 # end

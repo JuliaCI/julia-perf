@@ -45,7 +45,8 @@ function main()
             LibGit2.merge!(julia_repo, fastforward=true)
             julia_fetched = true
         catch err
-            println("Error: $err") # Sometimes fetch fails
+            println("Error fetching julia repo: $err") # Sometimes fetch fails
+            Base.showerror(stdout, err, Base.catch_backtrace())
         end
 
         try
@@ -89,7 +90,8 @@ function main()
             LibGit2.merge!(repo, fastforward=true)
             fetched = true
         catch err
-            println("Error: $err") # Sometimes fetch fails
+            println("Error fetching reports repo: $err") # Sometimes fetch fails
+            Base.showerror(stdout, err, Base.catch_backtrace())
         end
 
         try
@@ -152,7 +154,7 @@ function process_logs(db_path, shas, julia_repo)
             res = process_commit!(artifact_size_df, pstat_df, artifact_id, sha, "master", identity, LibGit2.author(LibGit2.GitCommit(julia_repo, sha)).time)
         catch err
             println("Error processing $sha logs")
-            println("Error: $err") # Sometimes fetch fails
+            Base.showerror(stdout, err, Base.catch_backtrace())
             rethrow()
         end
 
