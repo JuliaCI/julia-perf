@@ -80,6 +80,25 @@
       window.addEventListener("hashchange", post);
       post();
     })();
+
+    // When embedded in an iframe, open any cross-origin link in a new tab
+    // (sandboxing/CSP often prevents top-level navigation from inside the
+    // iframe, which makes such links appear broken).
+    (function () {
+      if (window.parent === window) return;
+      document.addEventListener("click", function (e) {
+        const a = e.target.closest && e.target.closest("a[href]");
+        if (!a) return;
+        if (a.target && a.target !== "" && a.target !== "_self") return;
+        const href = a.getAttribute("href");
+        if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+        let url;
+        try { url = new URL(a.href, location.href); } catch (_) { return; }
+        if (url.origin === location.origin) return;
+        a.target = "_blank";
+        a.relList.add("noopener", "noreferrer");
+      }, true);
+    })();
   </script>
 </body>
 </html>
