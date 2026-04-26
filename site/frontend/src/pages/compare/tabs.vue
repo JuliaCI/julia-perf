@@ -40,7 +40,8 @@ function SummaryTable({summary}: {summary: SummaryGroup}) {
           <thead>
             <tr>
               <th>Range</th>
-              <th style="padding-left: 1.4rem">Mean</th>
+              <th style="padding-left: 1.1rem">Geo mean</th>
+              <th style="padding-left: 1.1rem">Median</th>
             </tr>
           </thead>
           <thead>
@@ -50,8 +51,14 @@ function SummaryTable({summary}: {summary: SummaryGroup}) {
               </td>
               <td style="padding-left: 1.2rem">
                 <SummaryPercentValue
-                  class={percentClass(summary.all.average)}
-                  value={summary.all.average}
+                  class={percentClass(summary.all.geomean)}
+                  value={summary.all.geomean}
+                />
+              </td>
+              <td style="padding-left: 1.2rem">
+                <SummaryPercentValue
+                  class={percentClass(summary.all.median)}
+                  value={summary.all.median}
                 />
               </td>
             </tr>

@@ -2,7 +2,8 @@ import {BenchmarkFilter, StatComparison} from "./types";
 
 export interface Summary {
   count: number;
-  average: number;
+  geomean: number;
+  median: number;
   range: Array<number>;
 }
 
@@ -44,55 +45,86 @@ export function filterNonRelevant<Case>(
 export function computeSummary<Case extends {benchmark: string}>(
   comparisons: TestCaseComparison<Case>[]
 ): SummaryGroup {
-  let regressions: Summary = {
-    count: 0,
-    average: 0,
-    range: [Infinity, 0],
-  };
-
-  let improvements: Summary = {
-    count: 0,
-    average: 0,
-    range: [0, -Infinity],
-  };
-
-  let all: Summary = {
-    count: comparisons.length,
-    average: 0,
-    range: [0, 0],
-  };
+  const regressionsValues: number[] = [];
+  const improvementsValues: number[] = [];
+  const allValues: number[] = [];
 
   for (const testCase of comparisons) {
+    allValues.push(testCase.percent);
+
     if (testCase.percent < 0) {
-      improvements.count++;
-      improvements.range[0] = Math.min(improvements.range[0], testCase.percent);
-      improvements.range[1] = Math.max(improvements.range[1], testCase.percent);
-      improvements.average += testCase.percent;
+      improvementsValues.push(testCase.percent);
     } else if (testCase.percent > 0) {
-      regressions.count++;
-      regressions.range[0] = Math.min(regressions.range[0], testCase.percent);
-      regressions.range[1] = Math.max(regressions.range[1], testCase.percent);
-      regressions.average += testCase.percent;
+      regressionsValues.push(testCase.percent);
     }
-    all.range[0] = Math.min(all.range[0], testCase.percent);
-    all.range[1] = Math.max(all.range[1], testCase.percent);
-    all.average += testCase.percent;
   }
 
-  improvements.average = improvements.average / Math.max(1, improvements.count);
-  regressions.average = regressions.average / Math.max(regressions.count);
-  all.average = all.average / Math.max(1, all.count);
+  const toSummary = (values: number[]): Summary => {
+    return {
+      count: values.length,
+      geomean: geometricMeanPercent(values),
+      median: medianPercent(values),
+      range: computeRange(values),
+    };
+  };
 
-  if (improvements.count === 0) {
-    improvements.range[1] = 0;
-  }
-  if (regressions.count === 0) {
-    regressions.range[1] = 0;
-  }
+  const improvements = toSummary(improvementsValues);
+  const regressions = toSummary(regressionsValues);
+  const all = toSummary(allValues);
 
   return {
     improvements: improvements,
     regressions: regressions,
     all: all,
   };
+}
+
+function geometricMeanPercent(values: number[]): number {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  let logSum = 0;
+  for (const value of values) {
+    const ratio = 1 + value / 100;
+
+    if (ratio < 0) {
+      return 0;
+    }
+
+    if (ratio === 0) {
+      return -100;
+    }
+
+    logSum += Math.log(ratio);
+  }
+
+  return (Math.exp(logSum / values.length) - 1) * 100;
+}
+
+function medianPercent(values: number[]): number {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+  return sorted[middle];
+}
+
+function computeRange(values: number[]): number[] {
+  if (values.length === 0) {
+    return [];
+  }
+
+  let minimum = values[0];
+  let maximum = values[0];
+  for (const value of values) {
+    minimum = Math.min(minimum, value);
+    maximum = Math.max(maximum, value);
+  }
+  return [minimum, maximum];
 }

@@ -47,17 +47,15 @@ export function exportToMarkdown(
   }
 
   let content = "# Summary\n";
-  content += "| | Range | Mean | Count |\n";
-  content += "|:---:|:---:|:---:|:---:|\n";
+  content += "| | Range | Geo mean | Median | Count |\n";
+  content += "|:---:|:---:|:---:|:---:|:---:|\n";
   content += `| Regressions | ${formatRange(
     regressions.range
-  )} | ${regressions.average.toFixed(2)}% | ${regressions.count} |\n`;
+  )} | ${regressions.geomean.toFixed(2)}% | ${regressions.median.toFixed(2)}% | ${regressions.count} |\n`;
   content += `| Improvements | ${formatRange(
     improvements.range
-  )} | ${improvements.average.toFixed(2)}% | ${improvements.count} |\n`;
-  content += `| All | ${formatRange(all.range)} | ${all.average.toFixed(
-    2
-  )}% | ${all.count} |\n\n`;
+  )} | ${improvements.geomean.toFixed(2)}% | ${improvements.median.toFixed(2)}% | ${improvements.count} |\n`;
+  content += `| All | ${formatRange(all.range)} | ${all.geomean.toFixed(2)}% | ${all.median.toFixed(2)}% | ${all.count} |\n\n`;
 
   content += "# Benchmarks\n";
   content += changesTable(comparisons);

@@ -34,7 +34,8 @@ const summary = computed(() => props.summary);
       <tr>
         <th><!-- icon --></th>
         <th>Range</th>
-        <th>Mean</th>
+        <th>Geo mean</th>
+        <th>Median</th>
         <th>Count</th>
       </tr>
     </thead>
@@ -46,14 +47,17 @@ const summary = computed(() => props.summary);
             <SummaryRange :range="summary.regressions.range" />
           </td>
           <td>
-            <SummaryPercentValue :value="summary.regressions.average" />
+            <SummaryPercentValue :value="summary.regressions.geomean" />
+          </td>
+          <td>
+            <SummaryPercentValue :value="summary.regressions.median" />
           </td>
           <td class="positive">
             <SummaryCount :cases="summary.regressions.count" />
           </td>
         </template>
         <template v-else>
-          <td colspan="3" style="text-align: center">No regressions</td>
+          <td colspan="4" style="text-align: center">No regressions</td>
         </template>
       </tr>
       <tr>
@@ -63,14 +67,17 @@ const summary = computed(() => props.summary);
             <SummaryRange :range="summary.improvements.range" />
           </td>
           <td>
-            <SummaryPercentValue :value="summary.improvements.average" />
+            <SummaryPercentValue :value="summary.improvements.geomean" />
+          </td>
+          <td>
+            <SummaryPercentValue :value="summary.improvements.median" />
           </td>
           <td class="negative">
             <SummaryCount :cases="summary.improvements.count" />
           </td>
         </template>
         <template v-else>
-          <td colspan="3" style="text-align: center">No improvements</td>
+          <td colspan="4" style="text-align: center">No improvements</td>
         </template>
       </tr>
       <tr>
@@ -79,7 +86,10 @@ const summary = computed(() => props.summary);
           <SummaryRange :range="summary.all.range" />
         </td>
         <td>
-          <SummaryPercentValue :value="summary.all.average" />
+          <SummaryPercentValue :value="summary.all.geomean" />
+        </td>
+        <td>
+          <SummaryPercentValue :value="summary.all.median" />
         </td>
         <td>
           <SummaryCount :cases="summary.all.count" />
