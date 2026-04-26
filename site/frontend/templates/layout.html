@@ -28,5 +28,33 @@
     </div>
   </footer>
   {% block script %}{% endblock %}
+  <script>
+    // When embedded in an iframe, post URL changes to the parent so it can
+    // reflect the current view in its own address bar / deep links.
+    (function () {
+      if (window.parent === window) return;
+      function post() {
+        try {
+          window.parent.postMessage({
+            type: "julia-perf-url",
+            pathname: location.pathname,
+            search: location.search,
+            hash: location.hash,
+          }, "*");
+        } catch (e) { /* ignore */ }
+      }
+      for (const method of ["pushState", "replaceState"]) {
+        const orig = history[method];
+        history[method] = function () {
+          const ret = orig.apply(this, arguments);
+          post();
+          return ret;
+        };
+      }
+      window.addEventListener("popstate", post);
+      window.addEventListener("hashchange", post);
+      post();
+    })();
+  </script>
 </body>
 </html>
