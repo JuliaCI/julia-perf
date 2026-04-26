@@ -150,7 +150,11 @@ function genPlotOpts({
         onclick(_u, _seriesIdx, dataIdx) {
           let thisCommit = commits[dataIdx][1];
           let prevCommit = (commits[dataIdx - 1] || [null, null])[1];
-          window.open(`/compare.html?start=${prevCommit}&end=${thisCommit}`);
+          const params = new URLSearchParams({end: thisCommit});
+          if (prevCommit) {
+            params.set("start", prevCommit);
+          }
+          window.location.assign(`/compare.html?${params.toString()}`);
         },
         commits,
       }),
