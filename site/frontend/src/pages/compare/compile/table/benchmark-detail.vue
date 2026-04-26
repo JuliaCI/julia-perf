@@ -19,6 +19,10 @@ const props = defineProps<{
   baseArtifact: ArtifactDescription;
 }>();
 
+const historyGraphTarget = computed(() => {
+  return window.parent === window ? "_blank" : "_self";
+});
+
 function benchmarkLink(benchmark: string): string {
   return `https://github.com/JuliaCI/BaseBenchmarks.jl/tree/master/src/${
     benchmark.split(".")[0]
@@ -62,7 +66,7 @@ function graphLink(
           <li>
             <a
               :href="graphLink(props.artifact, props.metric, props.testCase)"
-              target="_blank"
+              :target="historyGraphTarget"
             >
               History graph
             </a>
