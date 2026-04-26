@@ -319,7 +319,13 @@ function genPlotOpts({
             end: thisCommit,
             stat,
           });
-          window.location.assign(`/compare.html?${params.toString()}`);
+          // In Iframe, redirect o/w open in new tab
+          const url = `/compare.html?${params.toString()}`;
+          if (window.parent === window) {
+            window.open(url);
+          } else {
+            window.location.assign(url);
+          }
         },
         commits,
         absoluteMode,

@@ -154,7 +154,13 @@ function genPlotOpts({
           if (prevCommit) {
             params.set("start", prevCommit);
           }
-          window.location.assign(`/compare.html?${params.toString()}`);
+          const url = `/compare.html?${params.toString()}`;
+          // In Iframe, redirect o/w open in new tab
+          if (window.parent === window) {
+            window.open(url);
+          } else {
+            window.location.assign(url);
+          }
         },
         commits,
       }),
