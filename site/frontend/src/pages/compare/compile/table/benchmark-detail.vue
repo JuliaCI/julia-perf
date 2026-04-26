@@ -20,6 +20,7 @@ const props = defineProps<{
 }>();
 
 const historyGraphTarget = computed(() => {
+  // Redirect if in iframe, o/w open in new tab
   return window.parent === window ? "_blank" : "_self";
 });
 
