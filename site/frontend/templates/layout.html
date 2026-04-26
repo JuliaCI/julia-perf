@@ -96,7 +96,7 @@
         try { url = new URL(a.href, location.href); } catch (_) { return; }
         if (url.origin === location.origin) return;
         a.target = "_blank";
-        a.rel = (a.rel ? a.rel + " " : "") + "noopener noreferrer";
+        a.relList.add("noopener", "noreferrer");
       }, true);
     })();
   </script>
