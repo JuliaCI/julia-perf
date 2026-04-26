@@ -314,9 +314,18 @@ function genPlotOpts({
 
           let thisCommit = commits[dataIdx][1];
           let prevCommit = commits[dataIdx - 1][1];
-          window.open(
-            `/compare.html?start=${prevCommit}&end=${thisCommit}&stat=${stat}`
-          );
+          const params = new URLSearchParams({
+            start: prevCommit,
+            end: thisCommit,
+            stat,
+          });
+          // In Iframe, redirect o/w open in new tab
+          const url = `/compare.html?${params.toString()}`;
+          if (window.parent === window) {
+            window.open(url);
+          } else {
+            window.location.assign(url);
+          }
         },
         commits,
         absoluteMode,

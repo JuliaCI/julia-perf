@@ -28,5 +28,58 @@
     </div>
   </footer>
   {% block script %}{% endblock %}
+  <script>
+    // When embedded in an iframe, post URL changes to the parent so it can
+    // reflect the current view in its own address bar / deep links.
+    (function () {
+      if (window.parent === window) return;
+      // Only post to known parent origins. postMessage with a specific
+      // targetOrigin is a no-op if it doesn't match the parent, so it's
+      // safe to attempt all allowed origins.
+      const ALLOWED_ORIGINS = [
+        "https://juliaci.github.io",
+        "https://julialang.org",
+      ];
+      function isAllowedOrigin(origin) {
+        if (ALLOWED_ORIGINS.includes(origin)) return true;
+        try {
+          const host = new URL(origin).hostname;
+          return host === "julialang.org" || host.endsWith(".julialang.org");
+        } catch (e) {
+          return false;
+        }
+      }
+      const targets = new Set(ALLOWED_ORIGINS);
+      // Also try the referrer's origin if it's a julialang.org subdomain.
+      if (document.referrer) {
+        try {
+          const refOrigin = new URL(document.referrer).origin;
+          if (isAllowedOrigin(refOrigin)) targets.add(refOrigin);
+        } catch (e) { /* ignore */ }
+      }
+      function post() {
+        const msg = {
+          type: "julia-perf-url",
+          pathname: location.pathname,
+          search: location.search,
+          hash: location.hash,
+        };
+        for (const origin of targets) {
+          try { window.parent.postMessage(msg, origin); } catch (e) { /* ignore */ }
+        }
+      }
+      for (const method of ["pushState", "replaceState"]) {
+        const orig = history[method];
+        history[method] = function () {
+          const ret = orig.apply(this, arguments);
+          post();
+          return ret;
+        };
+      }
+      window.addEventListener("popstate", post);
+      window.addEventListener("hashchange", post);
+      post();
+    })();
+  </script>
 </body>
 </html>
