@@ -10,12 +10,23 @@
   {% block head %}{% endblock %}
 </head>
 <body class="container">
-  <div>&gt; <a href="/">compare</a>, <a href="graphs.html">graphs</a>.
-  </div>
+  <header class="page-header">
+    <div class="page-title">Julia performance data</div>
+    <nav class="page-nav" aria-label="Site">
+      <a href="/">compare</a>
+      <span aria-hidden="true">/</span>
+      <a href="graphs.html">graphs</a>
+    </nav>
+  </header>
   {% block content %}{% endblock %}
-  <div style="text-align: center;">
+  <footer class="page-footer">
     <a href="https://github.com/Zentrik/rustc-perf">Contribute on GitHub</a>
-  </div>
+    <div>
+      Adapted from
+      <a href="https://github.com/rust-lang/rustc-perf">rustc-perf</a>
+      by the Rust team and contributors
+    </div>
+  </footer>
   {% block script %}{% endblock %}
 </body>
 </html>

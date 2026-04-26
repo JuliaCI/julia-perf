@@ -85,3 +85,28 @@ img {
 #as-of {
     text-align: center;
 }
+
+.page-header {
+  text-align: center;
+  margin-bottom: 1.25em;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.page-nav {
+  margin-top: 0.25em;
+}
+
+.page-nav span {
+  margin: 0 0.3em;
+}
+
+.page-footer {
+  text-align: center;
+  margin-top: 1em;
+}
+

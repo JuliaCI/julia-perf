@@ -17,12 +17,12 @@ You can build the website in multiple ways:
 - Build it yourself:
   ```console
   $ git clone https://github.com/rust-lang/rustc-perf.git
-  
+
   # Build frontend
   $ cd site/frontend
   $ npm install
   $ npm run build
-  
+
   # Build website binary
   $ cd ../..
   $ cargo build --bin site --release
@@ -36,12 +36,12 @@ For more information about working with the frontend, see [this README](frontend
 ## Launching
 
 If you've collected data locally, you will likely want to point the site at a
-local database. By default, a database called results.db located at the root of 
+local database. By default, a database called results.db located at the root of
 the project will be used. You can optionally pass a path to a database
 if you don't want to use the default.
 
 The site launches on port 2346 by default, which can be overridden by setting
-the `PORT` environment variable.
+the `RUSTC_PORT` environment variable.
 
 ```console
 $ ./target/release/site <database>
