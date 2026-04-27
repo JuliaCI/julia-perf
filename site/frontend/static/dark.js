@@ -2,7 +2,9 @@
 //   1. ?theme=dark|light|system  URL parameter
 //   2. localStorage["theme"]
 //   3. postMessage from a trusted parent: { type: "set-theme", theme: "dark"|"light"|"system" }
-// Default = system (no attribute set; CSS falls back to prefers-color-scheme).
+// Default = light when nothing is set. (rustc-perf upstream is light-only;
+// users explicitly opt in to dark via the URL param, localStorage, or the
+// embedding parent.)
 // Kept as a separate file so upstream rustc-perf merges don't conflict.
 (function () {
   var ALLOWED_PARENTS = [
@@ -29,8 +31,8 @@
     try {
       var p = new URLSearchParams(location.search).get("theme");
       if (p) { localStorage.setItem("theme", p); return p; }
-      return localStorage.getItem("theme") || "system";
-    } catch (e) { return "system"; }
+      return localStorage.getItem("theme") || "light";
+    } catch (e) { return "light"; }
   }
   apply(read());
   window.addEventListener("message", function (e) {
