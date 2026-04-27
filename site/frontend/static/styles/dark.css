@@ -88,13 +88,25 @@ html[data-theme="dark"] .negative { color: var(--jl-success); }
 html[data-theme="dark"] .slightly-negative { color: #7ee787; }
 html[data-theme="dark"] .collapsible-section { border-color: var(--jl-border) !important; }
 
-/* uPlot draws axis labels/ticks on canvas using getComputedStyle(root).color
-   at init time. The .uplot wrapper inherits from body, but be explicit so
-   the chart text is readable on the dark canvas regardless of uPlot version. */
+/* uPlot draws axis labels/ticks onto <canvas> using its own hardcoded
+   default stroke and ignores CSS color, so on dark backgrounds the axis
+   text is unreadable. Workaround: give the whole .uplot element a white
+   background in dark mode (with dark text inherited for the y-axis label
+   which IS a DOM element), so uPlot's dark canvas strokes show through. */
 @media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) .uplot { color: var(--jl-fg); }
+  html:not([data-theme="light"]) .uplot {
+    background: #fff;
+    color: #000;
+    padding: 4px;
+    border-radius: 4px;
+  }
 }
-html[data-theme="dark"] .uplot { color: var(--jl-fg); }
+html[data-theme="dark"] .uplot {
+  background: #fff;
+  color: #000;
+  padding: 4px;
+  border-radius: 4px;
+}
 
 /* The compare page's Submit button is light-blue via a scoped Vue style
    (specificity: .settings input[type="submit"][data-v-XXX]). Override with
