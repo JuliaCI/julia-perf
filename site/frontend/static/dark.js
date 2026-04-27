@@ -27,19 +27,25 @@
       root.removeAttribute("data-theme");
     }
   }
+  function normalize(t) {
+    return t === "dark" || t === "light" || t === "system" ? t : null;
+  }
   function read() {
     try {
-      var p = new URLSearchParams(location.search).get("theme");
+      var p = normalize(new URLSearchParams(location.search).get("theme"));
       if (p) { localStorage.setItem("theme", p); return p; }
-      return localStorage.getItem("theme") || "light";
+      return normalize(localStorage.getItem("theme")) || "light";
     } catch (e) { return "light"; }
   }
   apply(read());
   window.addEventListener("message", function (e) {
+    if (e.source !== window.parent) return;
     if (!isAllowedOrigin(e.origin)) return;
     var d = e.data;
     if (!d || d.type !== "set-theme") return;
-    try { localStorage.setItem("theme", d.theme || "system"); } catch (_) {}
-    apply(d.theme);
+    var t = normalize(d.theme);
+    if (!t) return;
+    try { localStorage.setItem("theme", t); } catch (_) {}
+    apply(t);
   });
 })();

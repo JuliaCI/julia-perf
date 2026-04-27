@@ -3,7 +3,10 @@
    Additive only; kept in a separate file so upstream rustc-perf merges
    don't conflict. Activates when:
      - <html data-theme="dark">    (explicit; set by dark.js)
-     - prefers-color-scheme: dark  (system) AND not <html data-theme="light">
+     - prefers-color-scheme: dark  (system) AND no data-theme attribute is
+       set. Note dark.js currently defaults to data-theme="light" when no
+       URL/localStorage/postMessage preference is given, so system-dark only
+       takes effect for users who have explicitly chosen "system".
 */
 
 :root {
@@ -25,10 +28,6 @@
   html:not([data-theme="light"]) { color-scheme: dark; }
 }
 html[data-theme="dark"] { color-scheme: dark; }
-
-/* Single shared selector via :where() (low specificity so page-level styles
-   still take precedence where needed). */
-:where(html[data-theme="dark"], html:not([data-theme="light"]):not([data-theme="dark"])) {}
 
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) body,
