@@ -1,0 +1,89 @@
+/* Dark mode overrides — palette matches the parent julia-ci-timing dashboard
+   (GitHub Primer dark) so the embedded iframe blends in seamlessly.
+   Additive only; kept in a separate file so upstream rustc-perf merges
+   don't conflict. Activates when:
+     - <html data-theme="dark">    (explicit; set by dark.js)
+     - prefers-color-scheme: dark  (system) AND not <html data-theme="light">
+*/
+
+:root {
+  --jl-canvas: #0d1117;
+  --jl-canvas-subtle: #161b22;
+  --jl-border: #30363d;
+  --jl-fg: #e6edf3;
+  --jl-fg-muted: #8b949e;
+  --jl-accent: #58a6ff;
+  --jl-accent-hover: #79c0ff;
+  --jl-success: #3fb950;
+  --jl-danger: #f85149;
+  --jl-btn-bg: #21262d;
+  --jl-btn-border: rgba(240, 246, 252, 0.1);
+  --jl-btn-hover-bg: #30363d;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) { color-scheme: dark; }
+}
+html[data-theme="dark"] { color-scheme: dark; }
+
+/* Single shared selector via :where() (low specificity so page-level styles
+   still take precedence where needed). */
+:where(html[data-theme="dark"], html:not([data-theme="light"]):not([data-theme="dark"])) {}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) body,
+  html:not([data-theme="light"]) .container {
+    background: var(--jl-canvas);
+    color: var(--jl-fg);
+  }
+  html:not([data-theme="light"]) a { color: var(--jl-accent); }
+  html:not([data-theme="light"]) a:hover,
+  html:not([data-theme="light"]) a:focus { color: var(--jl-accent-hover); }
+  html:not([data-theme="light"]) input,
+  html:not([data-theme="light"]) select,
+  html:not([data-theme="light"]) textarea,
+  html:not([data-theme="light"]) button {
+    background: var(--jl-btn-bg);
+    color: var(--jl-fg);
+    border: 1px solid var(--jl-btn-border);
+  }
+  html:not([data-theme="light"]) button:hover { background: var(--jl-btn-hover-bg); }
+  html:not([data-theme="light"]) table,
+  html:not([data-theme="light"]) th,
+  html:not([data-theme="light"]) td { border-color: var(--jl-border); }
+  html:not([data-theme="light"]) thead,
+  html:not([data-theme="light"]) tr:nth-child(even) td { background: var(--jl-canvas-subtle); }
+  html:not([data-theme="light"]) .positive { color: var(--jl-danger); }
+  html:not([data-theme="light"]) .slightly-positive { color: #ff7b72; }
+  html:not([data-theme="light"]) .negative { color: var(--jl-success); }
+  html:not([data-theme="light"]) .slightly-negative { color: #7ee787; }
+  html:not([data-theme="light"]) .collapsible-section { border-color: var(--jl-border) !important; }
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .container {
+  background: var(--jl-canvas);
+  color: var(--jl-fg);
+}
+html[data-theme="dark"] a { color: var(--jl-accent); }
+html[data-theme="dark"] a:hover,
+html[data-theme="dark"] a:focus { color: var(--jl-accent-hover); }
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] button {
+  background: var(--jl-btn-bg);
+  color: var(--jl-fg);
+  border: 1px solid var(--jl-btn-border);
+}
+html[data-theme="dark"] button:hover { background: var(--jl-btn-hover-bg); }
+html[data-theme="dark"] table,
+html[data-theme="dark"] th,
+html[data-theme="dark"] td { border-color: var(--jl-border); }
+html[data-theme="dark"] thead,
+html[data-theme="dark"] tr:nth-child(even) td { background: var(--jl-canvas-subtle); }
+html[data-theme="dark"] .positive { color: var(--jl-danger); }
+html[data-theme="dark"] .slightly-positive { color: #ff7b72; }
+html[data-theme="dark"] .negative { color: var(--jl-success); }
+html[data-theme="dark"] .slightly-negative { color: #7ee787; }
+html[data-theme="dark"] .collapsible-section { border-color: var(--jl-border) !important; }
