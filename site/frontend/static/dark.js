@@ -8,6 +8,7 @@
   var ALLOWED_PARENTS = [
     "https://juliaci.github.io",
     "https://julialang.org",
+    "https://perf.julialang.org",
   ];
   function isAllowedOrigin(origin) {
     if (ALLOWED_PARENTS.indexOf(origin) !== -1) return true;
