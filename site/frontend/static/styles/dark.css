@@ -87,3 +87,33 @@ html[data-theme="dark"] .slightly-positive { color: #ff7b72; }
 html[data-theme="dark"] .negative { color: var(--jl-success); }
 html[data-theme="dark"] .slightly-negative { color: #7ee787; }
 html[data-theme="dark"] .collapsible-section { border-color: var(--jl-border) !important; }
+
+/* uPlot draws axis labels/ticks on canvas using getComputedStyle(root).color
+   at init time. The .uplot wrapper inherits from body, but be explicit so
+   the chart text is readable on the dark canvas regardless of uPlot version. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .uplot { color: var(--jl-fg); }
+}
+html[data-theme="dark"] .uplot { color: var(--jl-fg); }
+
+/* The compare page's Submit button is light-blue via a scoped Vue style
+   (specificity: .settings input[type="submit"][data-v-XXX]). Override with
+   !important since the hash makes the scoped selector unmatchable from here. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) input[type="submit"] {
+    background: var(--jl-btn-bg) !important;
+    color: var(--jl-fg) !important;
+    border: 1px solid var(--jl-btn-border) !important;
+  }
+  html:not([data-theme="light"]) input[type="submit"]:hover {
+    background: var(--jl-btn-hover-bg) !important;
+  }
+}
+html[data-theme="dark"] input[type="submit"] {
+  background: var(--jl-btn-bg) !important;
+  color: var(--jl-fg) !important;
+  border: 1px solid var(--jl-btn-border) !important;
+}
+html[data-theme="dark"] input[type="submit"]:hover {
+  background: var(--jl-btn-hover-bg) !important;
+}
