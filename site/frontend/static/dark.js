@@ -1,10 +1,10 @@
 // Dark mode bootstrap. Sets <html data-theme="..."> from (in priority order):
 //   1. ?theme=dark|light|system  URL parameter
-//   2. localStorage["theme"]
-//   3. postMessage from a trusted parent: { type: "set-theme", theme: "dark"|"light"|"system" }
+//   2. postMessage from a trusted parent: { type: "set-theme", theme: "dark"|"light"|"system" }
 // Default = light when nothing is set. (rustc-perf upstream is light-only;
-// users explicitly opt in to dark via the URL param, localStorage, or the
-// embedding parent.)
+// users explicitly opt in to dark via the URL param or the embedding parent.)
+// No localStorage persistence: theme state lives only in the URL / parent
+// frame, so each fresh visit starts from the default.
 // Kept as a separate file so upstream rustc-perf merges don't conflict.
 (function () {
   var ALLOWED_PARENTS = [
@@ -32,9 +32,7 @@
   }
   function read() {
     try {
-      var p = normalize(new URLSearchParams(location.search).get("theme"));
-      if (p) { localStorage.setItem("theme", p); return p; }
-      return normalize(localStorage.getItem("theme")) || "light";
+      return normalize(new URLSearchParams(location.search).get("theme")) || "light";
     } catch (e) { return "light"; }
   }
   apply(read());
@@ -45,7 +43,6 @@
     if (!d || d.type !== "set-theme") return;
     var t = normalize(d.theme);
     if (!t) return;
-    try { localStorage.setItem("theme", t); } catch (_) {}
     apply(t);
   });
 })();
