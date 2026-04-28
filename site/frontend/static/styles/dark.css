@@ -1,0 +1,159 @@
+/* Dark mode overrides — palette matches the parent julia-ci-timing dashboard
+   (GitHub Primer dark) so the embedded iframe blends in seamlessly.
+   Additive only; kept in a separate file so upstream rustc-perf merges
+   don't conflict. Activates when:
+     - <html data-theme="dark">    (explicit; set by dark.js)
+     - prefers-color-scheme: dark  (system) AND no data-theme attribute is
+       set. Note dark.js currently defaults to data-theme="light" when no
+       URL/localStorage/postMessage preference is given, so system-dark only
+       takes effect for users who have explicitly chosen "system".
+*/
+
+:root {
+  --jl-canvas: #0d1117;
+  --jl-canvas-subtle: #161b22;
+  --jl-border: #30363d;
+  --jl-fg: #e6edf3;
+  --jl-fg-muted: #8b949e;
+  --jl-accent: #58a6ff;
+  --jl-accent-hover: #79c0ff;
+  --jl-success: #3fb950;
+  --jl-danger: #f85149;
+  --jl-btn-bg: #21262d;
+  --jl-btn-border: rgba(240, 246, 252, 0.1);
+  --jl-btn-hover-bg: #30363d;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) { color-scheme: dark; }
+}
+html[data-theme="dark"] { color-scheme: dark; }
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) body,
+  html:not([data-theme="light"]) .container {
+    background: var(--jl-canvas);
+    color: var(--jl-fg);
+  }
+  html:not([data-theme="light"]) a { color: var(--jl-accent); }
+  html:not([data-theme="light"]) a:hover,
+  html:not([data-theme="light"]) a:focus { color: var(--jl-accent-hover); }
+  html:not([data-theme="light"]) input,
+  html:not([data-theme="light"]) select,
+  html:not([data-theme="light"]) textarea,
+  html:not([data-theme="light"]) button {
+    background: var(--jl-btn-bg);
+    color: var(--jl-fg);
+    border: 1px solid var(--jl-btn-border);
+  }
+  html:not([data-theme="light"]) button:hover { background: var(--jl-btn-hover-bg); }
+  html:not([data-theme="light"]) table,
+  html:not([data-theme="light"]) th,
+  html:not([data-theme="light"]) td { border-color: var(--jl-border); }
+  html:not([data-theme="light"]) thead,
+  html:not([data-theme="light"]) tr:nth-child(even) td { background: var(--jl-canvas-subtle); }
+  html:not([data-theme="light"]) .positive { color: var(--jl-danger); }
+  html:not([data-theme="light"]) .slightly-positive { color: #ff7b72; }
+  html:not([data-theme="light"]) .negative { color: var(--jl-success); }
+  html:not([data-theme="light"]) .slightly-negative { color: #7ee787; }
+  html:not([data-theme="light"]) .collapsible-section { border-color: var(--jl-border) !important; }
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .container {
+  background: var(--jl-canvas);
+  color: var(--jl-fg);
+}
+html[data-theme="dark"] a { color: var(--jl-accent); }
+html[data-theme="dark"] a:hover,
+html[data-theme="dark"] a:focus { color: var(--jl-accent-hover); }
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] button {
+  background: var(--jl-btn-bg);
+  color: var(--jl-fg);
+  border: 1px solid var(--jl-btn-border);
+}
+html[data-theme="dark"] button:hover { background: var(--jl-btn-hover-bg); }
+html[data-theme="dark"] table,
+html[data-theme="dark"] th,
+html[data-theme="dark"] td { border-color: var(--jl-border); }
+html[data-theme="dark"] thead,
+html[data-theme="dark"] tr:nth-child(even) td { background: var(--jl-canvas-subtle); }
+html[data-theme="dark"] .positive { color: var(--jl-danger); }
+html[data-theme="dark"] .slightly-positive { color: #ff7b72; }
+html[data-theme="dark"] .negative { color: var(--jl-success); }
+html[data-theme="dark"] .slightly-negative { color: #7ee787; }
+html[data-theme="dark"] .collapsible-section { border-color: var(--jl-border) !important; }
+
+/* uPlot draws axis labels/ticks onto <canvas> using its own hardcoded
+   default stroke and ignores CSS color, so on dark backgrounds the axis
+   text is unreadable. Workaround: give the whole .uplot element a white
+   background in dark mode (with dark text inherited for the y-axis label
+   which IS a DOM element), so uPlot's dark canvas strokes show through. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .uplot {
+    background: #fff;
+    color: #000;
+    padding: 4px;
+    border-radius: 4px;
+  }
+}
+html[data-theme="dark"] .uplot {
+  background: #fff;
+  color: #000;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+/* The compare page's Submit button is light-blue via a scoped Vue style
+   (specificity: .settings input[type="submit"][data-v-XXX]). Override with
+   !important since the hash makes the scoped selector unmatchable from here. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) input[type="submit"] {
+    background: var(--jl-btn-bg) !important;
+    color: var(--jl-fg) !important;
+    border: 1px solid var(--jl-btn-border) !important;
+  }
+  html:not([data-theme="light"]) input[type="submit"]:hover {
+    background: var(--jl-btn-hover-bg) !important;
+  }
+}
+html[data-theme="dark"] input[type="submit"] {
+  background: var(--jl-btn-bg) !important;
+  color: var(--jl-fg) !important;
+  border: 1px solid var(--jl-btn-border) !important;
+}
+html[data-theme="dark"] input[type="submit"]:hover {
+  background: var(--jl-btn-hover-bg) !important;
+}
+
+/* Scoped Vue style on cachegrind-cmd.vue hardcodes pre background #eeeeee.
+   Override the same way as the Submit button. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) pre {
+    background-color: var(--jl-canvas-subtle) !important;
+    color: var(--jl-fg) !important;
+  }
+}
+html[data-theme="dark"] pre {
+  background-color: var(--jl-canvas-subtle) !important;
+  color: var(--jl-fg) !important;
+}
+
+/* Scoped Vue style on tooltip.vue hardcodes a light grey swatch (#d6d3d3)
+   for the "?" badge; in dark mode the inherited light text becomes
+   unreadable on it. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .tooltip {
+    background: var(--jl-btn-bg) !important;
+    color: var(--jl-fg) !important;
+    border-color: var(--jl-btn-border) !important;
+  }
+}
+html[data-theme="dark"] .tooltip {
+  background: var(--jl-btn-bg) !important;
+  color: var(--jl-fg) !important;
+  border-color: var(--jl-btn-border) !important;
+}
