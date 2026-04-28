@@ -128,3 +128,16 @@ html[data-theme="dark"] input[type="submit"] {
 html[data-theme="dark"] input[type="submit"]:hover {
   background: var(--jl-btn-hover-bg) !important;
 }
+
+/* Scoped Vue style on cachegrind-cmd.vue hardcodes pre background #eeeeee.
+   Override the same way as the Submit button. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) pre {
+    background-color: var(--jl-canvas-subtle) !important;
+    color: var(--jl-fg) !important;
+  }
+}
+html[data-theme="dark"] pre {
+  background-color: var(--jl-canvas-subtle) !important;
+  color: var(--jl-fg) !important;
+}
