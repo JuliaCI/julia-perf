@@ -141,3 +141,19 @@ html[data-theme="dark"] pre {
   background-color: var(--jl-canvas-subtle) !important;
   color: var(--jl-fg) !important;
 }
+
+/* Scoped Vue style on tooltip.vue hardcodes a light grey swatch (#d6d3d3)
+   for the "?" badge; in dark mode the inherited light text becomes
+   unreadable on it. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .tooltip {
+    background: var(--jl-btn-bg) !important;
+    color: var(--jl-fg) !important;
+    border-color: var(--jl-btn-border) !important;
+  }
+}
+html[data-theme="dark"] .tooltip {
+  background: var(--jl-btn-bg) !important;
+  color: var(--jl-fg) !important;
+  border-color: var(--jl-btn-border) !important;
+}
