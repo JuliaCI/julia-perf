@@ -41,7 +41,9 @@ function openTrace(arrayBuffer: ArrayBuffer, title: string) {
 }
 
 export async function checkIsEmbeddedPerfettoEnabled(): Promise<boolean> {
-  const result = await fetch(`/perfetto/index.html`);
-
-  return result.status === 200;
+  // The Julia deploy does not ship the embedded perfetto bundle, so this
+  // probe always fails and any fetch() call (GET 404, HEAD 405) shows up
+  // as a noisy error in the console. Hardcode false; users still get the
+  // external ui.perfetto.dev link path.
+  return false;
 }
