@@ -1,0 +1,21 @@
+(site_common) {
+  encode zstd gzip
+  redir /db /db/ 308
+
+  handle /db/* {
+    reverse_proxy 127.0.0.1:${datasette_port}
+  }
+
+  handle {
+    reverse_proxy 127.0.0.1:${container_port}
+  }
+}
+
+http://${public_ip} {
+  import site_common
+}
+%{ if public_hostname != "" ~}
+${public_hostname} {
+  import site_common
+}
+%{ endif ~}

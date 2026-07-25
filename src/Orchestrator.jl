@@ -56,6 +56,20 @@ function write_checkpoint(path, checkpoint)
     write(path, "$checkpoint\n")
 end
 
+function report_error(context, err, backtrace)
+    println(context)
+    Base.showerror(stdout, err, backtrace)
+    println()
+end
+
+function rollback_transaction(db, context)
+    try
+        DBInterface.execute(db, "ROLLBACK")
+    catch err
+        report_error("Error rolling back $context transaction", err, Base.catch_backtrace())
+    end
+end
+
 function get_changed_benchmark_dirs(from_entries, to_entries)
     changed_dirs = Set{String}()
     for relpath in union(keys(from_entries), keys(to_entries))
@@ -175,8 +189,6 @@ function main(install)
     atexit(kill_server)
 
     while true
-        changed = false
-
         if install
             read_checkpoint(julia_checkpoint_file) == julia_last_processed || error("Julia checkpoint file changed unexpectedly")
             read_checkpoint(reports_checkpoint_file) == reports_last_processed || error("Reports checkpoint file changed unexpectedly")
@@ -189,21 +201,34 @@ function main(install)
             shas, commit_times = get_master_commits_since(julia_last_processed)
             julia_fetched = true
         catch err
-            println("Error fetching Julia commits from GitHub API")
-            Base.showerror(stdout, err, Base.catch_backtrace())
-            println()
+            report_error("Error fetching Julia commits from GitHub API", err, Base.catch_backtrace())
         end
 
+        # Set before BEGIN so that a BEGIN rejected because of a transaction
+        # leaked from a failed ROLLBACK still triggers the rollback that clears
+        # it; cleared after COMMIT so errors past that point (e.g. in
+        # write_checkpoint) don't issue a spurious no-op ROLLBACK.
+        txn_open = false
         try
             if julia_fetched
-                install && DBInterface.execute(db, "BEGIN TRANSACTION")
+                if install
+                    txn_open = true
+                    DBInterface.execute(db, "BEGIN TRANSACTION")
+                end
 
                 # I think I decided not to upload whatever timing stats we get from build logs
                 artifact_size_df, pstat_df, first_unfinished_commit = process_logs(db, shas, commit_times; install=install)
-                changed |= !isempty(artifact_size_df)
+
                 if !isempty(artifact_size_df)
                     kill_server()
-                    install && SQLite.load!(artifact_size_df, db, "artifact_size")
+                    if install
+                        # Re-processed artifacts may already have rows; replace them.
+                        # This runs inside the surrounding transaction, so the
+                        # delete and load commit or roll back together.
+                        aids = join(unique(artifact_size_df.aid), ",")
+                        DBInterface.execute(db, "DELETE FROM artifact_size WHERE aid IN ($aids)")
+                        SQLite.load!(artifact_size_df, db, "artifact_size")
+                    end
                 end
 
                 if !isnothing(first_unfinished_commit)
@@ -215,14 +240,16 @@ function main(install)
                     next_julia_checkpoint = isempty(shas) ? julia_last_processed : shas[end]
                 end
 
-                install && DBInterface.execute(db, "COMMIT")
+                if install
+                    DBInterface.execute(db, "COMMIT")
+                    txn_open = false
+                end
                 install && write_checkpoint(julia_checkpoint_file, next_julia_checkpoint)
                 julia_last_processed = next_julia_checkpoint
             end
-        catch
-            println("Error processing logs")
-            install && DBInterface.execute(db, "ROLLBACK")
-            rethrow()
+        catch err
+            report_error("Error processing logs", err, Base.catch_backtrace())
+            txn_open && rollback_transaction(db, "logs")
         end
 
         reports_head = ""
@@ -235,11 +262,10 @@ function main(install)
             to_entries = get_benchmark_tree_entries(reports_repo_owner, reports_repo_name, reports_head)
             fetched = true
         catch err
-            println("Error fetching reports repo metadata from GitHub")
-            Base.showerror(stdout, err, Base.catch_backtrace())
-            println()
+            report_error("Error fetching reports repo metadata from GitHub", err, Base.catch_backtrace())
         end
 
+        txn_open = false
         try
             if fetched
                 changed_benchmark_dirs = get_changed_benchmark_dirs(
@@ -247,11 +273,13 @@ function main(install)
                     to_entries,
                 )
 
-                install && DBInterface.execute(db, "BEGIN TRANSACTION")
+                if install
+                    txn_open = true
+                    DBInterface.execute(db, "BEGIN TRANSACTION")
+                end
 
                 for benchmark_dir in changed_benchmark_dirs
                     benchmark_dir_exists(to_entries, benchmark_dir) || continue
-                    changed = true
                     kill_server()
                     println("$(benchmark_dir) changed")
                     with_downloaded_benchmark_dir(to_entries, reports_head, benchmark_dir) do local_benchmark_dir
@@ -259,17 +287,24 @@ function main(install)
                     end
                 end
 
-                install && DBInterface.execute(db, "COMMIT")
+                if install
+                    DBInterface.execute(db, "COMMIT")
+                    txn_open = false
+                end
                 install && write_checkpoint(reports_checkpoint_file, reports_head)
                 reports_last_processed = reports_head
             end
-        catch
-            println("Error processing benchmarks")
-            install && DBInterface.execute(db, "ROLLBACK")
-            rethrow()
+        catch err
+            report_error("Error processing benchmarks", err, Base.catch_backtrace())
+            txn_open && rollback_transaction(db, "benchmark")
         end
 
-        if changed
+        # The server can also die on its own; a dead handle must not block the
+        # restart.
+        if !isnothing(proc[]) && !process_running(proc[])
+            proc[] = nothing
+        end
+        if isnothing(proc[])
             start_server()
         end
         sleep(sleep_time)
@@ -304,8 +339,7 @@ function process_logs(db::SQLite.DB, shas, commit_times; install)
             commit_time = commit_times[sha]
             res = process_commit!(artifact_size_df, pstat_df, artifact_id, sha, "master", identity, commit_time)
         catch err
-            println("Error processing $sha logs")
-            Base.showerror(stdout, err, Base.catch_backtrace())
+            report_error("Error processing $sha logs", err, Base.catch_backtrace())
             rethrow()
         end
 

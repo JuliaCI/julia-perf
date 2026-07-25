@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+
+host_env_file="/etc/rustc-perf-site.host.env"
+if [ -f "$host_env_file" ]; then
+  set -a
+  . "$host_env_file"
+  set +a
+fi
+
+# The host env file written by Terraform is the single source of truth for
+# these; fail loudly instead of falling back to defaults that could drift.
+data_root="${RUSTC_PERF_DATA_DIR:?RUSTC_PERF_DATA_DIR is not set}"
+db_name="${RUSTC_PERF_DB_FILENAME:?RUSTC_PERF_DB_FILENAME is not set}"
+image_ref="${RUSTC_PERF_IMAGE_REF:?RUSTC_PERF_IMAGE_REF is not set}"
+runtime_uid="${RUSTC_PERF_RUNTIME_UID:?RUSTC_PERF_RUNTIME_UID is not set}"
+runtime_gid="${RUSTC_PERF_RUNTIME_GID:?RUSTC_PERF_RUNTIME_GID is not set}"
+port="${RUSTC_PORT:?RUSTC_PORT is not set}"
+region="${AWS_REGION:?AWS_REGION is not set}"
+
+registry="${image_ref%%/*}"
+
+# The image reference is digest-pinned, so a locally present image can never
+# be stale; skip the ECR round-trip on restarts (and in restart loops).
+if ! docker image inspect "$image_ref" >/dev/null 2>&1; then
+  aws ecr get-login-password --region "$region" | docker login --username AWS --password-stdin "$registry"
+  docker pull "$image_ref"
+fi
+
+# The container name is also hardcoded in rustc-perf-site.service's ExecStop.
+docker rm -f rustc-perf-site >/dev/null 2>&1 || true
+# The env values come straight from the host env file sourced above, so the
+# container always sees the same paths Terraform configured on the host.
+# The log cap matters on this long-lived host: the container logs every HTTP
+# request, and the default json-file driver never rotates.
+exec docker run --name rustc-perf-site \
+  --publish "127.0.0.1:${port}:${port}" \
+  --user "${runtime_uid}:${runtime_gid}" \
+  --security-opt no-new-privileges:true \
+  --cap-drop ALL \
+  --env RUSTC_PORT="$port" \
+  --env RUSTC_PERF_DATA_DIR="$data_root" \
+  --env RUSTC_PERF_DB_FILENAME="$db_name" \
+  --log-opt max-size=100m \
+  --log-opt max-file=3 \
+  --mount type=bind,src="${data_root}",dst="${data_root}" \
+  "$image_ref"

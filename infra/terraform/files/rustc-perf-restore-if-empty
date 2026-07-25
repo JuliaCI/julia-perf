@@ -1,0 +1,107 @@
+#!/bin/sh
+set -eu
+
+host_env_file="/etc/rustc-perf-site.host.env"
+if [ -f "$host_env_file" ]; then
+  set -a
+  . "$host_env_file"
+  set +a
+fi
+
+# The host env file written by Terraform is the single source of truth for
+# these; fail loudly instead of falling back to defaults that could drift.
+data_root="${RUSTC_PERF_DATA_DIR:?RUSTC_PERF_DATA_DIR is not set}"
+db_name="${RUSTC_PERF_DB_FILENAME:?RUSTC_PERF_DB_FILENAME is not set}"
+state_root="${data_root}/.state"
+runtime_uid="${RUSTC_PERF_RUNTIME_UID:?RUSTC_PERF_RUNTIME_UID is not set}"
+runtime_gid="${RUSTC_PERF_RUNTIME_GID:?RUSTC_PERF_RUNTIME_GID is not set}"
+backup_bucket="${RUSTC_PERF_BACKUP_BUCKET:?RUSTC_PERF_BACKUP_BUCKET is not set}"
+backup_prefix="${RUSTC_PERF_BACKUP_PREFIX:?RUSTC_PERF_BACKUP_PREFIX is not set}"
+archive_dir="${RUSTC_PERF_BACKUP_ARCHIVE_DIR:?RUSTC_PERF_BACKUP_ARCHIVE_DIR is not set}"
+latest_name="${RUSTC_PERF_BACKUP_LATEST_NAME:?RUSTC_PERF_BACKUP_LATEST_NAME is not set}"
+caddy_data_dir="${RUSTC_PERF_CADDY_DATA_DIR:?RUSTC_PERF_CADDY_DATA_DIR is not set}"
+
+# When the database is missing and cannot be restored, exit non-zero: this
+# script runs as ExecStartPre of the site unit, so failing here keeps the
+# unit visibly failing (and never reaches the docker pull in ExecStart)
+# instead of letting the container crash-loop against a missing database.
+fail_if_db_missing() {
+  if [ "$db_missing" -eq 1 ]; then
+    echo "Database ${data_root}/${db_name} is missing and was not restored; seed it (or fix backups), then restart rustc-perf-site." >&2
+    exit 1
+  fi
+  exit 0
+}
+
+# Figure out what is missing. A fresh host (after a Terraform replacement) is
+# missing both; a normal restart is missing neither, so we do nothing.
+db_missing=0
+[ ! -s "${data_root}/${db_name}" ] && db_missing=1
+
+caddy_missing=0
+[ -z "$(ls -A "$caddy_data_dir" 2>/dev/null || true)" ] && caddy_missing=1
+
+if [ "$db_missing" -eq 0 ] && [ "$caddy_missing" -eq 0 ]; then
+  exit 0
+fi
+
+# Stage on the root volume, not mktemp's default /tmp: on AL2023 /tmp is a
+# RAM-backed tmpfs far smaller than the extracted database.
+staging_root="/var/lib/rustc-perf-restore-staging"
+install -d -m 700 "$staging_root"
+work_dir="$(mktemp -d "${staging_root}/restore.XXXXXX")"
+cleanup() {
+  rm -rf "$work_dir"
+}
+trap cleanup EXIT INT TERM
+
+restore_key="${backup_prefix}/${latest_name}"
+if ! aws s3api head-object --bucket "$backup_bucket" --key "$restore_key" >/dev/null 2>&1; then
+  # Fall back to the most recently uploaded timestamped archive. Sort by
+  # LastModified, not Key: keys are <archive_dir>/<host>/<ts>.tar.gz and each
+  # replacement instance gets a new hostname, so key order is not time order.
+  restore_key="$(aws s3api list-objects-v2 --bucket "$backup_bucket" \
+    --prefix "${backup_prefix}/${archive_dir}/" \
+    --query 'sort_by(Contents, &LastModified)[-1].Key' --output text 2>/dev/null || true)"
+  [ "$restore_key" = "None" ] && restore_key=""
+
+  if [ -z "$restore_key" ]; then
+    echo "No backup archive found under s3://${backup_bucket}/${backup_prefix}/." >&2
+    fail_if_db_missing
+  fi
+fi
+
+# Stream the download straight into tar so the compressed archive never
+# touches the disk (this ExecStartPre blocks site start on a fresh host).
+# sh has no pipefail, but a failed download still fails the pipeline: tar
+# exits non-zero on the truncated gzip stream.
+if ! aws s3 cp "s3://${backup_bucket}/${restore_key}" - --only-show-errors | tar -C "$work_dir" -xz; then
+  echo "Failed to download or extract backup archive s3://${backup_bucket}/${restore_key}." >&2
+  fail_if_db_missing
+fi
+
+if [ "$db_missing" -eq 1 ]; then
+  if [ ! -s "${work_dir}/${db_name}" ]; then
+    echo "Backup archive does not contain ${db_name}." >&2
+    fail_if_db_missing
+  fi
+  install -d -m 750 -o "$runtime_uid" -g "$runtime_gid" "${data_root}" "$state_root"
+  # The staging dir is on the same filesystem, so mv is a rename — it avoids
+  # writing the multi-GB database a second time on this boot-blocking path.
+  mv "${work_dir}/${db_name}" "${data_root}/${db_name}"
+  rm -f "${data_root}/${db_name}-wal" "${data_root}/${db_name}-shm"
+  if [ -d "${work_dir}/.state" ]; then
+    rm -rf "$state_root"
+    mv "${work_dir}/.state" "$state_root"
+  fi
+  chown -R "${runtime_uid}:${runtime_gid}" "${data_root}"
+  chmod 750 "${data_root}" "$state_root"
+  chmod 640 "${data_root}/${db_name}"
+  echo "Restored ${db_name} from S3 backup." >&2
+fi
+
+if [ "$caddy_missing" -eq 1 ] && [ -d "${work_dir}/caddy-data" ]; then
+  install -d -m 755 "$caddy_data_dir"
+  cp -a "${work_dir}/caddy-data/." "$caddy_data_dir/"
+  echo "Restored Caddy certificate store from S3 backup." >&2
+fi
