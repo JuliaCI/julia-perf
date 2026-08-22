@@ -51,7 +51,8 @@ function raw_self_profile_link(
   benchmark: string,
   scenario: string
 ): string {
-  const url = `/perf/download-raw-self-profile?commit=${commit}&benchmark=${benchmark}&scenario=${scenario}`;
+  const params = new URLSearchParams({commit, benchmark, scenario});
+  const url = `/perf/download-raw-self-profile?${params}`;
   return `<a href="${url}">raw</a>`;
 }
 
@@ -151,8 +152,15 @@ function populate_data(data, state: Selector) {
     state.benchmark
   } run ${state.scenario}`;
   if (state.base_commit) {
-    let self_href = `/detailed-query.html?sort_idx=${state.sort_idx}&commit=${state.commit}&scenario=${state.scenario}&benchmark=${state.benchmark}`;
-    let base_href = `/detailed-query.html?sort_idx=${state.sort_idx}&commit=${state.base_commit}&scenario=${state.scenario}&benchmark=${state.benchmark}`;
+    const detailed_query_href = (commit: string) =>
+      `/detailed-query.html?${new URLSearchParams({
+        sort_idx: state.sort_idx.toString(),
+        commit,
+        scenario: state.scenario,
+        benchmark: state.benchmark,
+      })}`;
+    let self_href = detailed_query_href(state.commit);
+    let base_href = detailed_query_href(state.base_commit);
     txt += `<br>diff vs base ${state.base_commit.substring(
       0,
       10
@@ -192,9 +200,16 @@ function populate_data(data, state: Selector) {
       : "???";
   if (state.base_commit) {
     txt += "<br>";
-    txt += `Diff: <a
-                        href="/perf/processed-self-profile?commit=${state.commit}&base_commit=${state.base_commit}&benchmark=${state.benchmark}&scenario=${state.scenario}&type=codegen-schedule"
-                        >codegen-schedule</a>`;
+    const codegen_schedule_href = `/perf/processed-self-profile?${new URLSearchParams(
+      {
+        commit: state.commit,
+        base_commit: state.base_commit,
+        benchmark: state.benchmark,
+        scenario: state.scenario,
+        type: "codegen-schedule",
+      }
+    )}`;
+    txt += `Diff: <a href="${codegen_schedule_href}">codegen-schedule</a>`;
     txt +=
       "<br>Local profile (base): <code>" +
       `./target/release/collector profile_local cachegrind

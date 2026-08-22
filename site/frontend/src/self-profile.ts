@@ -20,5 +20,11 @@ export function processedSelfProfileRelativeUrl(
   scenario: string,
   type: string
 ): string {
-  return `/perf/processed-self-profile?commit=${commit}&benchmark=${benchmarkAndProfile}&scenario=${scenario}&type=${type}`;
+  const params = new URLSearchParams({
+    commit,
+    benchmark: benchmarkAndProfile,
+    scenario,
+    type,
+  });
+  return `/perf/processed-self-profile?${params}`;
 }
