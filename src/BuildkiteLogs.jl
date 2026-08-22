@@ -4,6 +4,23 @@ using HTTP, JSON3, DataFrames, Dates
 
 export process_commit!
 
+const will_never_finish = ("canceled", "canceling", "skipped", "broken",
+    "expired", "timed_out", "waiting_failed", "blocked_failed", "unblocked_failed")
+
+const abandon_after = Hour(6)
+
+function give_up_if_stale(sha, commit_time)
+    if time() - commit_time > Dates.value(Second(abandon_after))
+        now_dt = Dates.unix2datetime(round(Int, time()))
+        commit_dt = Dates.unix2datetime(round(Int, commit_time))
+        fmt = dateformat"yyyy-mm-dd HH:MM:SS"
+        println("Build not finished after $abandon_after at $(Dates.format(now_dt, fmt)) for $sha committed at $(Dates.format(commit_dt, fmt)), skipping")
+        return :no_ci
+    end
+
+    return :not_finished
+end
+
 function get_log(sha, commit_time, pipeline)
     url = "https://buildkite.com/julialang/$pipeline/builds?commit=$sha"
 
@@ -29,21 +46,19 @@ function get_log(sha, commit_time, pipeline)
         if details_json.records[idx].exit_status isa Integer && details_json.records[idx].exit_status != 0
             return :no_ci
         end
-        if details_json.records[idx].state != "finished"
-            return :not_finished
+        state = details_json.records[idx].state
+        if state in will_never_finish
+            println("Build for $sha is $state, skipping")
+            return :no_ci
+        end
+        if state != "finished"
+            return give_up_if_stale(sha, commit_time)
         end
     catch err
         println("Error processing build status for $sha")
         println("Error: $err")
 
-        if time() - commit_time > 60 * 60 * 6 # If no log after 6 hours, assumed failed
-            now_dt = Dates.unix2datetime(round(Int, time()))
-            commit_dt = Dates.unix2datetime(round(Int, commit_time))
-            fmt = dateformat"yyyy-mm-dd HH:MM:SS"
-            println("Build not finished after 6 hours at $(Dates.format(now_dt, fmt)) for $sha committed at $(Dates.format(commit_dt, fmt)), skipping")
-            return :no_ci
-        end
-        return :not_finished
+        return give_up_if_stale(sha, commit_time)
     end
 
     logs_url = "https://buildkite.com/" * details_json.records[idx].base_path * "/download.txt"
