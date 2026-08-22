@@ -41,7 +41,15 @@ function graphLink(
     end = commit.commit;
   }
   const {benchmark} = testCase;
-  return `/graphs.html?start=${start}&end=${end}&benchmark=${benchmark}&stat=${metric}`;
+  // Encode the parameters, benchmark names can contain characters that are
+  // significant in URLs (e.g. `#`, `+` or `&`).
+  const params = new URLSearchParams({
+    start,
+    end,
+    benchmark,
+    stat: metric,
+  });
+  return `/graphs.html?${params}`;
 }
 </script>
 
